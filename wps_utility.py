@@ -3,6 +3,7 @@
 Created on Thu Apr 25 21:57:32 2019
 
 @author: Kang Sun
+for nima
 """
 
 import matplotlib.pyplot as plt
