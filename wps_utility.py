@@ -39,7 +39,7 @@ def F_shp2geotiff(shp_path,tiff_path_out,tiff_path_ref,burn_value=1):
         the "reference" tiff file
     """
     gt, proj, xres, yres = F_tiff_info(tiff_path_ref)
-    tiff_out = gdal.GetDriverByName('GTiff').Creat(tiff_path_out,\
+    tiff_out = gdal.GetDriverByName('GTiff').Create(tiff_path_out,\
                                    xres,yres,1,gdal.GDT_Float32)
     tiff_out.SetGeoTransform(gt)
     tiff_out.SetProjection(proj)
