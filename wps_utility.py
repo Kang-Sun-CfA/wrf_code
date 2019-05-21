@@ -6,7 +6,7 @@ Created on Thu Apr 25 21:57:32 2019
 for nima
 """
 
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import gdal
 import osr
 import ogr
@@ -16,6 +16,70 @@ import os
 #https://gis.stackexchange.com/questions/271226/up-sampling-increasing-resolution-raster-image-using-gdal
 # function examples
 # https://www.programcreek.com/python/example/101827/gdal.RasterizeLayer
+def F_upsample_tif(tif_path,new_tif_path,upsample_factor=3):
+    """
+    updsample tif and replace some values
+    save to a new tif
+    """
+    upsample_factor = int(upsample_factor)
+    in_ds = gdal.Open(tif_path)
+    in_band = in_ds.GetRasterBand(1)
+    
+    # Multiply output size by 3 
+    out_rows = in_band.YSize * upsample_factor
+    out_columns = in_band.XSize * upsample_factor
+    
+    # Create new data source (raster)
+    gtiff_driver = gdal.GetDriverByName('GTiff')
+    out_ds = gtiff_driver.Create(new_tif_path, out_columns, out_rows)
+    out_ds.SetProjection(in_ds.GetProjection())
+    geotransform = list(in_ds.GetGeoTransform())
+    
+    # Edit the geotransform so pixels are one-sixth previous size
+    geotransform[1] /= 3
+    geotransform[5] /= 3
+    out_ds.SetGeoTransform(geotransform)
+    
+    data = in_band.ReadAsArray(buf_xsize=out_columns, buf_ysize=out_rows)  # Specify a larger buffer size when reading data
+    data[data==92] = 14# snow/ce
+    data[data==93] = 15# agriculture
+    data[data==98] = 16# water
+    data[data==99] = 17# barren
+    data[data==91] = 18# urban
+    out_band = out_ds.GetRasterBand(1)
+    out_band.WriteArray(data)
+    
+    out_band.FlushCache()
+    out_band.ComputeStatistics(False)
+    out_ds.BuildOverviews('average', [2, 4, 8, 16, 32, 64])
+
+def F_coords_tif( path_to_file ):
+    '''
+    path_to_file:
+        the input file that resampling is going to be done on it.
+        it should end with '.tif'
+    '''
+    
+    f = gdal.Open(path_to_file, gdal.GA_ReadOnly)
+
+    f_width = f.RasterXSize
+    f_height = f.RasterYSize
+    f_nbands = f.RasterCount
+    
+    f_data = f.ReadAsArray()
+    f_trans = f.GetGeoTransform()
+    
+    xres = f_trans[1]
+    yres = f_trans[5]
+    xorig = f_trans[0]
+    yorig = f_trans[3]
+    xgrid = xorig+np.arange(0,f_width)*xres
+    ygrid = yorig+np.arange(0,f_height)*yres
+    
+    f.FlushCache
+    
+    return f_data,xgrid,ygrid
+
 def F_tiff_info(tiff_path):
     """
     Opening a tiff info, for example size of array, projection and transform matrix.
@@ -109,11 +173,11 @@ def F_reproject_shp(shp_path_in,shp_path_out,spatial_ref_out):
     outDataSet = None
     
 # test above functions
-shp_path_in = '/mnt/Data2/GIS_data/camp_perimeter/ca_camp_20181121_2105_dd83.shp'
-shp_path_out = '/mnt/Data2/GIS_data/test1.shp'
-tif_path = '/home/kangsun/wrf_fire/nima_camp_fire_fuel/US_140FBFM13/US_140FBFM13.tif'
-tif = gdal.Open(tif_path, gdal.GA_ReadOnly)
-spatial_ref_out = osr.SpatialReference(wkt = tif.GetProjection())
-F_reproject_shp(shp_path_in,shp_path_out,spatial_ref_out)
-tiff_from_shp = '/mnt/Data2/GIS_data/test1.tif'
-F_shp2geotiff(shp_path_out,tiff_from_shp,tif_path)
+#shp_path_in = '/mnt/Data2/GIS_data/camp_perimeter/ca_camp_20181121_2105_dd83.shp'
+#shp_path_out = '/mnt/Data2/GIS_data/test1.shp'
+#tif_path = '/home/kangsun/wrf_fire/nima_camp_fire_fuel/US_140FBFM13/US_140FBFM13.tif'
+#tif = gdal.Open(tif_path, gdal.GA_ReadOnly)
+#spatial_ref_out = osr.SpatialReference(wkt = tif.GetProjection())
+#F_reproject_shp(shp_path_in,shp_path_out,spatial_ref_out)
+#tiff_from_shp = '/mnt/Data2/GIS_data/test1.tif'
+#F_shp2geotiff(shp_path_out,tiff_from_shp,tif_path)
